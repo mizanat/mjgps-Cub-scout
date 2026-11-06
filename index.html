@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>কাব স্কাউট তথ্য ব্যবস্থাপনা</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=SolaimanLipi&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'SolaimanLipi', sans-serif;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 min-h-screen text-slate-800">
+
+    <!-- Header -->
+    <header class="bg-emerald-700 text-white shadow-md">
+        <div class="max-w-7xl mx-auto px-4 py-4 flex flex-col md:flex-row justify-between items-center gap-4">
+            <h1 class="text-xl md:text-2xl font-bold flex items-center gap-2">
+                ⚜️ কাব স্কাউট সদস্য ব্যবস্থাপনা
+            </h1>
+            <div class="flex flex-wrap gap-2">
+                <button onclick="openModal()" class="bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2 rounded-lg text-sm font-medium transition shadow">
+                    + নতুন সদস্য যোগ করুন
+                </button>
+                <button onclick="exportData()" class="bg-emerald-800 hover:bg-emerald-900 text-white px-3 py-2 rounded-lg text-sm font-medium transition">
+                    📥 ব্যাকআপ (JSON)
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <main class="max-w-7xl mx-auto px-4 py-6">
+        
+        <!-- Search & Filter Bar -->
+        <div class="bg-white p-4 rounded-xl shadow-sm mb-6 flex flex-col md:flex-row gap-4 justify-between items-center">
+            <div class="w-full md:w-1/3">
+                <input type="text" id="searchInput" onkeyup="filterData()" placeholder="নাম, আইডি বা ষষ্ঠক দিয়ে খুঁজুন..." class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm">
+            </div>
+            <div class="text-sm text-slate-500">
+                মোট সদস্য: <span id="totalCount" class="font-bold text-emerald-700">০</span> জন
+            </div>
+        </div>
+
+        <!-- Table Container -->
+        <div class="bg-white rounded-xl shadow-sm overflow-hidden border border-slate-100">
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr class="bg-slate-100 text-slate-700 text-sm uppercase tracking-wider">
+                            <th class="p-3">আইডি</th>
+                            <th class="p-3">নাম</th>
+                            <th class="p-3">ষষ্ঠক (Six)</th>
+                            <th class="p-3">শ্রেণি</th>
+                            <th class="p-3">মোবাইল নম্বর</th>
+                            <th class="p-3 text-center">কার্যক্রম</th>
+                        </tr>
+                    </thead>
+                    <tbody id="cubTableBody" class="divide-y divide-slate-100 text-sm">
+                        <!-- Data will load here dynamically -->
+                    </tbody>
+                </table>
+            </div>
+            <div id="noData" class="hidden text-center py-10 text-slate-400">
+                কোনো সদস্যের তথ্য পাওয়া যায়নি। নতুন সদস্য যোগ করুন।
+            </div>
+        </div>
+    </main>
+
+    <!-- Add/Edit Modal -->
+    <div id="cubModal" class="fixed inset-0 bg-black/50 hidden z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl max-w-lg w-full p-6 shadow-xl max-h-[90vh] overflow-y-auto">
+            <div class="flex justify-between items-center mb-4">
+                <h3 id="modalTitle" class="text-lg font-bold text-slate-800">নতুন কাব স্কাউট সদস্য এন্ট্রি</h3>
+                <button onclick="closeModal()" class="text-slate-400 hover:text-slate-600 font-bold text-xl">&times;</button>
+            </div>
+            
+            <form id="cubForm" onsubmit="saveCub(event)" class="space-y-4">
+                <input type="hidden" id="cubIndex">
+                <div>
+                    <label class="block text-sm font-medium mb-1">সদস্যের নাম *</label>
+                    <input type="text" id="name" required class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium mb-1">আইডি / রোল নম্বর</label>
+                        <input type="text" id="memberId" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium mb-1">শ্রেণি</label>
+                        <input type="text" id="classGrade" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+                    </div>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium mb-1">ষষ্ঠক (Six)</label>
+                        <select id="sixName" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+                            <option value="লাল ষষ্ঠক">লাল ষষ্ঠক</option>
+                            <option value="নীল ষষ্ঠক">নীল ষষ্ঠক</option>
+                            <option value="সবুজ ষষ্ঠক">সবুজ ষষ্ঠক</option>
+                            <option value="হলুদ ষষ্ঠক">হলুদ ষষ্ঠক</option>
+                            <option value="অন্যান্য">অন্যান্য</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium mb-1">মোবাইল নম্বর</label>
+                        <input type="tel" id="phone" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium mb-1">পিতা / অভিভাবকের নাম</label>
+                    <input type="text" id="guardian" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium mb-1">ব্যাজ / অর্জনসমূহ</label>
+                    <input type="text" id="badge" placeholder="যেমন: তারকাসূचक, নিপুণ স্কাউট ইত্যাদি" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+                </div>
+
+                <div class="flex justify-end gap-2 pt-4">
+                    <button type="button" onclick="closeModal()" class="px-4 py-2 border rounded-lg text-slate-600 hover:bg-slate-100 text-sm">বাতিল</button>
+                    <button type="submit" class="px-5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-sm font-medium shadow">সংরক্ষণ করুন</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- JavaScript Application Logic -->
+    <script>
+        let cubs = JSON.parse(localStorage.getItem('cub_members')) || [];
+
+        function renderTable(data = cubs) {
+            const tbody = document.getElementById('cubTableBody');
+            const noData = document.getElementById('noData');
+            document.getElementById('totalCount').innerText = data.length;
+            
+            tbody.innerHTML = '';
+            if (data.length === 0) {
+                noData.classList.remove('hidden');
+                return;
+            }
+            noData.classList.add('hidden');
+
+            data.forEach((cub, index) => {
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-slate-50 transition";
+                tr.innerHTML = `
+                    <td class="p-3 font-mono text-slate-600">${cub.memberId || 'N/A'}</td>
+                    <td class="p-3 font-medium text-slate-900">${cub.name}</td>
+                    <td class="p-3"><span class="px-2.5 py-1 bg-emerald-100 text-emerald-800 rounded-full text-xs font-medium">${cub.sixName}</span></td>
+                    <td class="p-3 text-slate-600">${cub.classGrade || '-'}</td>
+                    <td class="p-3 text-slate-600">${cub.phone || '-'}</td>
+                    <td class="p-3 text-center space-x-2">
+                        <button onclick="editCub(${index})" class="text-blue-600 hover:text-blue-800 font-medium text-xs bg-blue-50 px-2.5 py-1 rounded">এডিট</button>
+                        <button onclick="deleteCub(${index})" class="text-rose-600 hover:text-rose-800 font-medium text-xs bg-rose-50 px-2.5 py-1 rounded">ডিলিট</button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function openModal() {
+            document.getElementById('cubForm').reset();
+            document.getElementById('cubIndex').value = '';
+            document.getElementById('modalTitle').innerText = 'নতুন কাব স্কাউট সদস্য এন্ট্রি';
+            document.getElementById('cubModal').classList.remove('hidden');
+        }
+
+        function closeModal() {
+            document.getElementById('cubModal').classList.add('hidden');
+        }
+
+        function saveCub(event) {
+            event.preventDefault();
+            const index = document.getElementById('cubIndex').value;
+            const cubData = {
+                memberId: document.getElementById('memberId').value,
+                name: document.getElementById('name').value,
+                classGrade: document.getElementById('classGrade').value,
+                sixName: document.getElementById('sixName').value,
+                phone: document.getElementById('phone').value,
+                guardian: document.getElementById('guardian').value,
+                badge: document.getElementById('badge').value
+            };
+
+            if (index === '') {
+                cubs.push(cubData);
+            } else {
+                cubs[index] = cubData;
+            }
+
+            localStorage.setItem('cub_members', JSON.stringify(cubs));
+            closeModal();
+            renderTable();
+        }
+
+        function editCub(index) {
+            const cub = cubs[index];
+            document.getElementById('cubIndex').value = index;
+            document.getElementById('memberId').value = cub.memberId || '';
+            document.getElementById('name').value = cub.name || '';
+            document.getElementById('classGrade').value = cub.classGrade || '';
+            document.getElementById('sixName').value = cub.sixName || 'লাল ষষ্ঠক';
+            document.getElementById('phone').value = cub.phone || '';
+            document.getElementById('guardian').value = cub.guardian || '';
+            document.getElementById('badge').value = cub.badge || '';
+            
+            document.getElementById('modalTitle').innerText = 'সদস্যের তথ্য আপডেট করুন';
+            document.getElementById('cubModal').classList.remove('hidden');
+        }
+
+        function deleteCub(index) {
+            if (confirm('আপনি কি নিশ্চিত যে এই সদস্যের তথ্য মুছে ফেলতে চান?')) {
+                cubs.splice(index, 1);
+                localStorage.setItem('cub_members', JSON.stringify(cubs));
+                renderTable();
+            }
+        }
+
+        function filterData() {
+            const query = document.getElementById('searchInput').value.toLowerCase();
+            const filtered = cubs.filter(c => 
+                (c.name && c.name.toLowerCase().includes(query)) ||
+                (c.memberId && c.memberId.toLowerCase().includes(query)) ||
+                (c.sixName && c.sixName.toLowerCase().includes(query))
+            );
+            renderTable(filtered);
+        }
+
+        function exportData() {
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(cubs, null, 2));
+            const downloadAnchor = document.createElement('a');
+            downloadAnchor.setAttribute("href", dataStr);
+            downloadAnchor.setAttribute("download", "cub_scouts_data.json");
+            document.body.appendChild(downloadAnchor);
+            downloadAnchor.click();
+            downloadAnchor.remove();
+        }
+
+        // Initial render
+        renderTable();
+    </script>
+</body>
+</html>
